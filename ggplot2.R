@@ -1,5 +1,13 @@
 # https://github.com/michbur/PADR/blob/master/ggplot2.R
 
+final_dat <- melt(dat, variable.name = "medium") %>% 
+  mutate(medium = sapply(strsplit(as.character(medium), "_"), first),
+         value = ifelse(value < 0, 0, value)) %>% 
+  group_by(medium) %>% 
+  group_by(active, strain, medium) %>% 
+  summarise(value = median(value)) %>% 
+  inner_join(pathotype)
+
 library(ggplot2)
 
 ggplot(final_dat, aes(x = pathotype, y = value)) +

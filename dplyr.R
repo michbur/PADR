@@ -1,23 +1,52 @@
 library(dplyr)
-dat <- read.csv("./data/data1.csv")
+library(reshape2)
+dat <- read.csv("https://raw.githubusercontent.com/michbur/PADR/master/data/data1.csv")
 
 dat[["strain"]]
 
 mutate(dat, strain = as.character(strain))
 
-dat <- read.csv("./data/data1.csv") %>% 
+dat <- read.csv("https://raw.githubusercontent.com/michbur/PADR/master/data/data1.csv") %>% 
   mutate(strain = as.character(strain))
 
 select(dat, M63_1, M63_2, M63_3)
 
+melt(dat, variable.name = "medium")
+
+melt(dat, variable.name = "medium")[["medium"]]
+
+melt(dat, variable.name = "medium")[["medium"]] %>% 
+  as.character
+
+melt(dat, variable.name = "medium")[["medium"]] %>% 
+  as.character %>% 
+  strsplit("_")
+
+melt(dat, variable.name = "medium")[["medium"]] %>% 
+  as.character %>% 
+  strsplit("_") %>% 
+  sapply(first)
+
 melt(dat, variable.name = "medium") %>% 
   mutate(medium = sapply(strsplit(as.character(medium), "_"), first))
 
+melt(dat, variable.name = "medium") %>% 
+  mutate(medium = sapply(strsplit(as.character(medium), "_"), first),
+         value = ifelse(value < 0, 0, value))
+
+melt(dat, variable.name = "medium") %>% 
+  mutate(medium = sapply(strsplit(as.character(medium), "_"), first),
+         value = ifelse(value < 0, 0, value)) %>% 
+  group_by(medium) %>% 
+  mutate(value = (max(value) - min(value))/max(value))
+
 median_dat <- melt(dat, variable.name = "medium") %>% 
-  mutate(medium = sapply(strsplit(as.character(medium), "_"), first)) %>% 
+  mutate(medium = sapply(strsplit(as.character(medium), "_"), first),
+         value = ifelse(value < 0, 0, value)) %>% 
+  group_by(medium) %>% 
+  mutate(value = (max(value) - min(value))/max(value)) %>% 
   group_by(active, strain, medium) %>% 
   summarise(value = median(value))
-
 
 filter(median_dat, strain == "5160")
 
@@ -29,7 +58,7 @@ group_by(median_dat, active, medium) %>%
 group_by(median_dat, active, medium) %>% 
   filter(value == max(value))
 
-pathotype <- read.csv("./data/data2.csv") %>% 
+pathotype <- read.csv("https://raw.githubusercontent.com/michbur/PADR/master/data/data2.csv") %>% 
   mutate(strain = as.character(strain))
 
 final_dat <- inner_join(median_dat, pathotype)

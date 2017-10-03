@@ -3,7 +3,6 @@
 final_dat <- melt(dat, variable.name = "medium") %>% 
   mutate(medium = sapply(strsplit(as.character(medium), "_"), first),
          value = ifelse(value < 0, 0, value)) %>% 
-  group_by(medium) %>% 
   group_by(active, strain, medium) %>% 
   summarise(value = median(value)) %>% 
   inner_join(pathotype)
@@ -13,6 +12,7 @@ library(ggplot2)
 ggplot(final_dat, aes(x = pathotype, y = value)) +
   geom_point()
 
+set.seed(1410)
 ggplot(final_dat, aes(x = pathotype, y = value)) +
   geom_point(position = "jitter")
 
@@ -23,6 +23,10 @@ ggplot(final_dat, aes(x = pathotype, y = value)) +
 ggplot(final_dat, aes(x = pathotype, y = value)) +
   geom_point(position = "jitter") +
   facet_grid(medium ~ active)
+
+ggplot(final_dat, aes(x = pathotype, y = value)) +
+  geom_point(position = "jitter") +
+  facet_wrap(~ active + medium)
 
 ggplot(final_dat, aes(x = pathotype, y = value)) +
   geom_boxplot() +
@@ -64,6 +68,15 @@ ggplot(final_dat, aes(x = value, fill = active)) +
   geom_density(alpha = 0.2) +
   facet_grid(pathotype ~ medium)
 
+ungroup(final_dat) %>% 
+  mutate(active = factor(active, 
+                         levels = c("W2", "W3", "W1"),
+                         labels = c("A1", "W3", "W1"))) %>% 
+  ggplot(aes(x = value, fill = active)) +
+  geom_density(alpha = 0.2) +
+  facet_wrap(~ medium)
+
+
 # 1. Create a density plot for each pathotype and medium.
 
 thr_dat <- mutate(final_dat, thr = value > 0.07)
@@ -78,11 +91,25 @@ ggplot(thr_dat, aes(x = thr, fill = medium)) +
   geom_bar(position = "fill")
 
 ggplot(thr_dat, aes(x = medium, fill = thr)) +
-  geom_bar(position = "fill")
+  geom_bar(position = "fill") 
 
 # 1. Using facets and bar charts show threshold data separately
 # for each active substance.
 # 2. Show on a barchart number of strains from each pathotype.
+
+thr_dat2 <- group_by(thr_dat, medium) %>% 
+  summarise(thr = mean(thr))
+
+rbind(mutate(thr_dat2, thr_et = TRUE),
+      mutate(thr_dat2, thr_et = FALSE,
+             thr = 1 - thr)) %>% 
+  ggplot(aes(x = medium, y = thr, fill = thr_et, label = formatC(thr, 2))) +
+  geom_bar(stat = "identity") +
+  geom_text(vjust = 2)
+
+ggplot(thr_dat, aes(x = medium, fill = thr)) +
+  geom_bar(position = "fill") + 
+  geom_text
 
 mean_dat <- group_by(final_dat, active, medium, pathotype) %>% 
   summarise(mean_value = mean(value),
